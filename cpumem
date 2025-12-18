@@ -1,0 +1,26 @@
+---
+- name: Gather system information and write to CSV
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Gather VM information using nproc for vCPUs
+      command: nproc
+      register: nproc_output
+
+    - name: Gather memory information
+      command: free -h
+      register: memory_output
+
+    - name: Set VM facts
+      set_fact:
+        vm_info:
+          hostname: "{{ inventory_hostname }}"
+          ip_address: "{{ ansible_default_ipv4.address }}"
+          vcpu: "{{ nproc_output.stdout }}"
+          ram: "{{ ansible_memory_mb.real.total / 1024 | round(2) }}"
+
+    - name: Combine results and append to CSV file
+      lineinfile:
+        path: "/tmp/vmpwc.csv"
+        line: "{{ vm_info.hostname }},{{ vm_info.ip_address }},{{ vm_info.vcpu }},{{ vm_info.ram }}"
+        create: yes
